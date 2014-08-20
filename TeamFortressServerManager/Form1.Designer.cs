@@ -268,7 +268,7 @@
             this.copyClientPortButton.TabIndex = 48;
             this.copyClientPortButton.Text = "Copy";
             this.copyClientPortButton.UseVisualStyleBackColor = true;
-            this.copyClientPortButton.Click += new System.EventHandler(this.copyLabel);
+            this.copyClientPortButton.Click += new System.EventHandler(this.copyButtons_Click);
             // 
             // copyServerPortButton
             // 
@@ -278,7 +278,7 @@
             this.copyServerPortButton.TabIndex = 47;
             this.copyServerPortButton.Text = "Copy";
             this.copyServerPortButton.UseVisualStyleBackColor = true;
-            this.copyServerPortButton.Click += new System.EventHandler(this.copyLabel);
+            this.copyServerPortButton.Click += new System.EventHandler(this.copyButtons_Click);
             // 
             // copyExternalIPButton
             // 
@@ -288,7 +288,7 @@
             this.copyExternalIPButton.TabIndex = 46;
             this.copyExternalIPButton.Text = "Copy";
             this.copyExternalIPButton.UseVisualStyleBackColor = true;
-            this.copyExternalIPButton.Click += new System.EventHandler(this.copyLabel);
+            this.copyExternalIPButton.Click += new System.EventHandler(this.copyButtons_Click);
             // 
             // copyLocalIPButton
             // 
@@ -298,7 +298,7 @@
             this.copyLocalIPButton.TabIndex = 45;
             this.copyLocalIPButton.Text = "Copy";
             this.copyLocalIPButton.UseVisualStyleBackColor = true;
-            this.copyLocalIPButton.Click += new System.EventHandler(this.copyLabel);
+            this.copyLocalIPButton.Click += new System.EventHandler(this.copyButtons_Click);
             // 
             // testSpeedButton
             // 
@@ -308,6 +308,7 @@
             this.testSpeedButton.TabIndex = 42;
             this.testSpeedButton.Text = "Test speed";
             this.testSpeedButton.UseVisualStyleBackColor = true;
+            this.testSpeedButton.Click += new System.EventHandler(this.testSpeedButton_Click);
             // 
             // pingLabel
             // 
@@ -792,7 +793,7 @@
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Team Fortress 2 Server GUI";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
-            this.Shown += new System.EventHandler(this.formLoaded);
+            this.Shown += new System.EventHandler(this.Form1_Shown);
             this.serverOptionsGroupBox.ResumeLayout(false);
             this.networkGroupBox.ResumeLayout(false);
             this.networkGroupBox.PerformLayout();

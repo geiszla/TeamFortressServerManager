@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
@@ -13,13 +9,11 @@ namespace TeamFortressServerManager
 {
     public partial class Form1 : Form
     {
-        public Thread[] refreshThreads = new Thread[4];
+        #region Variables
+        public static Thread[] refreshThreads = new Thread[4];
+        #endregion
 
-        public Ip localIp;
-        public Ip publicIp;
-        public Ip portStatus;
-        public string proxy;
-
+        #region Initialization
         public Form1()
         {
             InitializeComponent();
@@ -28,153 +22,127 @@ namespace TeamFortressServerManager
 
             isFirstCheck();
 
-            if (globalClass1.isFirst == true)
+            if (MainProgram.Variable.isFirst == true)
             {
                 MessageBox.Show("It seems that at least one required option is not set. Please do it now!", "Welcome!", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
-                showForm2();
+                MainProgram.Forms.showForm2();
             }
 
-            if (globalClass2.checkSettings())
+            if (Context.IO.checkSettings())
             {
-                showForm2();
+                MainProgram.Forms.showForm2();
+            }
+        }
+        #endregion
+
+        #region Events
+        // Form Events
+        private void Form1_Shown(object sender, EventArgs e)
+        {
+            refreshNetwork();
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            foreach (Thread currThread in refreshThreads)
+            {
+                if (currThread != null)
+                {
+                    currThread.Abort();
+                }
+            }
+        }
+
+        // Main Events
+        private void startButton_Click(object sender, EventArgs e)
+        {
+            MainProgram.Forms.showForm3();
+
+            /*
+            var updateProcess = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "C:\\Users\\Andris\\Downloads\\TF2Server\\srcds.exe",
+                    Arguments = "-console -game tf -port 27015 +maxplayers 32 +map ph_island_a17",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = false
+                }
+            };
+
+            updateProcess.Start();
+
+            while (!updateProcess.StandardOutput.EndOfStream)
+            {
+                string currLine = updateProcess.StandardOutput.ReadLine();
+
+                StreamWriter a = new StreamWriter("server.log", true);
+                a.WriteLine(currLine);
+                a.Close();
+            }
+             */
+        }
+
+        private void updateButton_Click(object sender, EventArgs e)
+        {
+            if (!Context.IO.checkSettings())
+            {
+                Thread updateServerThread = new Thread(new ThreadStart(updateServer));
+                updateServerThread.Start();
+            }
+        }
+
+        // Network Events
+        private void networkRefreshButton_Click(object sender, EventArgs e)
+        {
+            refreshNetwork();
+        }
+
+        private void copyButtons_Click(object sender, EventArgs e)
+        {
+            Button currButton = (Button)sender;
+            Regex regEx = new Regex("copy(.*)Button");
+            string name = regEx.Match(currButton.Name).Groups[1].ToString().ToLower();
+
+            Label currLabel = (Label)this.Controls.Find(name + "Label", true)[0];
+
+            if (currLabel.Text != "N/A" && currLabel.Text != "Refreshing...")
+            {
+                Clipboard.SetText(currLabel.Text);
             }
         }
 
 
-        //Main functions
+        private void testSpeedButton_Click(object sender, EventArgs e)
+        {
+            /*
+            long beginValue = NetworkInterface.GetIPv4Statistics().BytesReceived;
+            DateTime beginTime = DateTime.Now;
 
+            // do something
+
+            long endValue = NetworkInterface.GetIPv4Statistics().BytesReceived;
+            DateTime endTime = DateTime.Now;
+
+            long recievedBytes = endValue - beginValue;
+            double totalSeconds = (endTime - beginTime).TotalSeconds;
+
+            var bytesPerSecond = recievedBytes / totalSeconds;
+             */
+        }
+
+        // Other Events
         private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            showForm2();
+            MainProgram.Forms.showForm2();
         }
+        #endregion
 
-
-        //Sub Functions
-
-        private void isFirstCheck()
-        {
-            if (globalClass2.readOption("ServerDirectory") == "" || globalClass2.readOption("GameDirectory") == "" || globalClass2.readOption("SteamCMDDirectory") == "")
-            {
-                TeamFortressServerManager.globalClass1.isFirst = true;
-            }
-        }
-
-        private void showForm2()
-        {
-            Form2 settingsWindow = new Form2();
-            settingsWindow.ShowDialog();
-        }
-
-        private void showForm3()
-        {
-            Form3 settingsWindow = new Form3();
-            settingsWindow.ShowDialog();
-        }
-
-        void refreshLocalIp()
-        {
-            IPHostEntry host;
-            string newLocalIp = "N/A";
-            host = Dns.GetHostEntry(Dns.GetHostName());
-            foreach (IPAddress ip in host.AddressList)
-            {
-                if (ip.AddressFamily == AddressFamily.InterNetwork)
-                {
-                    newLocalIp = ip.ToString();
-                }
-            }
-
-            localIp = new Ip(newLocalIp);
-            this.Invoke(new Action(() => localIpLabel.Text = newLocalIp));
-        }
-
-        void refreshPublicIp()
-        {
-            string externalIP = getWebpage("http://curlmyip.com/");
-
-            if (publicIp == null)
-            {
-                refreshThreads[3] = new Thread(new ThreadStart(refreshPortStatus));
-                refreshThreads[3].IsBackground = true;
-                refreshThreads[3].Start();
-            }
-
-            publicIp = new Ip(externalIP);
-            this.Invoke(new Action(() => externalIpLabel.Text = externalIP));
-        }
-
-        void refreshPortStatus()
-        {
-            if (publicIp != null)
-            {
-                IPAddress[] hostIPAddresses = Dns.GetHostAddresses(publicIp.ToString());
-                IPAddress selectedIPAddress = null;
-
-                if (hostIPAddresses == null || hostIPAddresses.Length == 0) { this.Invoke(new Action(() => portStatusLabel.Text = "Unknown")); }
-
-                for (int i = 0; i < hostIPAddresses.Length; i++)
-                {
-                    if (hostIPAddresses[i].AddressFamily == AddressFamily.InterNetwork)
-                    {
-                        selectedIPAddress = hostIPAddresses[i];
-                        break;
-                    }
-                }
-
-                if (selectedIPAddress == null) { this.Invoke(new Action(() => portStatusLabel.Text = "Unknown")); }
-
-                Socket socketInstance = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
-                try
-                {
-                    socketInstance.Connect(selectedIPAddress, 25565);
-
-                    if (socketInstance.Connected == true)
-                    {
-                        //Port is in use and connection is successful           
-                        this.Invoke(new Action(() => portStatusLabel.Text = "Open"));
-                    }
-
-                    this.Invoke(new Action(() => portStatusLabel.Text = "Closed"));
-                }
-
-                catch (SocketException ex)
-                {
-                    if (ex.ErrorCode == 10061)
-                    {
-                        //Port is unused and could not establish connection        
-                        this.Invoke(new Action(() => portStatusLabel.Text = "Closed"));
-                    }
-
-                    else
-                    {
-                        this.Invoke(new Action(() => portStatusLabel.Text = "Unknown"));
-                    }
-                }
-
-                finally
-                {
-                    if (socketInstance != null)
-                    {
-                        socketInstance.Close();
-                    }
-                }
-            }
-        }
-
-        void refreshProxy()
-        {
-            string htmlContent = getWebpage("http://www.whatismyip.com/");
-
-            Regex regEx = new Regex("class=\"the-proxy\">(.*)</");
-            string newProxy = regEx.Match(htmlContent).Groups[1].ToString();
-
-            proxy = newProxy;
-            this.Invoke(new Action(() => proxyLabel.Text = proxy));
-        }
-
-        private void refreshNetwork()
+        #region Functions
+        // Network Functions
+        void refreshNetwork()
         {
             localIpLabel.Text = "Refreshing...";
             externalIpLabel.Text = "Refreshing...";
@@ -183,7 +151,7 @@ namespace TeamFortressServerManager
 
             startThread(0, refreshLocalIp);
 
-            if (publicIp != null)
+            if (MainProgram.Network.publicIp != null)
             {
                 startThread(1, refreshPortStatus);
             }
@@ -192,75 +160,60 @@ namespace TeamFortressServerManager
             startThread(3, refreshPublicIp);
         }
 
-        string getWebpage(string url)
+        void refreshLocalIp()
         {
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-            request.UserAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:12.0) Gecko/20100101 Firefox/12.0";
-
-            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-
-            Stream receiveStream = response.GetResponseStream();
-            StreamReader readStream = new StreamReader(receiveStream, Encoding.UTF8);
-            string htmlContent = readStream.ReadToEnd();
-
-            return htmlContent;
+            string localIp = MainProgram.Network.refreshLocalIp();
+            this.Invoke(new Action(() => localIpLabel.Text = localIp));
         }
 
-        private void startButton_Click(object sender, EventArgs e)
+        void refreshPublicIp()
         {
-            showForm3();
+            string publicIp = MainProgram.Network.refreshPublicIp();
+            this.Invoke(new Action(() => externalIpLabel.Text = publicIp));
+        }
 
-            /*
-        var updateProcess = new Process
+        void refreshPortStatus()
         {
-            StartInfo = new ProcessStartInfo
+            string portStatus = MainProgram.Network.refreshPortStatus();
+            this.Invoke(new Action(() => portStatusLabel.Text = portStatus));
+        }
+
+        void refreshProxy()
+        {
+            string proxy = MainProgram.Network.refreshProxy();
+            this.Invoke(new Action(() => proxyLabel.Text = proxy));
+        }
+
+        // Threading Functions
+        public delegate void MyFunction();
+
+        public static void startThread(int i, MyFunction function)
+        {
+            if (refreshThreads[i] == null || !refreshThreads[i].IsAlive)
             {
-                FileName = "C:\\Users\\Andris\\Downloads\\TF2Server\\srcds.exe",
-                Arguments = "-console -game tf -port 27015 +maxplayers 32 +map ph_island_a17",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                CreateNoWindow = false
-            }
-        };
-
-        updateProcess.Start();
-
-        while (!updateProcess.StandardOutput.EndOfStream)
-        {
-            string currLine = updateProcess.StandardOutput.ReadLine();
-
-            StreamWriter a = new StreamWriter("server.log", true);
-            a.WriteLine(currLine);
-            a.Close();
-        }
-             */
-        }
-
-        private void updateButton_Click(object sender, EventArgs e)
-        {
-            if (!globalClass2.checkSettings())
-            {
-                Thread updateServerThread = new Thread(new ThreadStart(updateServer));
-                updateServerThread.Start();
+                refreshThreads[i] = new Thread(new ThreadStart(function));
+                refreshThreads[i].IsBackground = true;
+                refreshThreads[i].Start();
             }
         }
 
-        private void updateUpdateStatus(int inputPercent)
+        // Update Functions
+        void updateUpdateStatus(int inputPercent)
         {
             updateProgressBar.Value = inputPercent;
         }
 
-        private void statusStripUpdate(string currStatus)
+        void statusStripUpdate(string currStatus)
         {
             statusStripLabel.Text = currStatus;
             statusStrip.Refresh();
         }
 
-        public void updateServer()
+        void updateServer()
         {
-            string steamCMDDirectory = globalClass2.readOption("SteamCMDDirectory");
-            string serverDirectory = globalClass2.readOption("ServerDirectory");
-            string gameNumber = globalClass2.readOption("GameNumber");
+            string steamCMDDirectory = Context.IO.readOption("SteamCMDDirectory");
+            string serverDirectory = Context.IO.readOption("ServerDirectory");
+            string gameNumber = Context.IO.readOption("GameNumber");
 
             var updateProcess = new Process
             {
@@ -278,22 +231,16 @@ namespace TeamFortressServerManager
 
             while (!updateProcess.StandardOutput.EndOfStream)
             {
-                if (InvokeRequired)
-                {
-                    this.Invoke(new Action(() => statusStripUpdate("enter")));
-                    return;
-                }
+                this.Invoke(new Action(() => statusStripUpdate("enter")));
+                return;
 
                 string currLine = updateProcess.StandardOutput.ReadLine();
 
                 char[] splitChars = { ':', ' ' };
                 string[] splittedLine = currLine.Split(splitChars, 2);
 
-                if (InvokeRequired)
-                {
-                    this.Invoke(new Action(() => statusStripUpdate(currLine)));
-                    return;
-                }
+                this.Invoke(new Action(() => statusStripUpdate(currLine)));
+                return;
 
                 try
                 {
@@ -322,57 +269,18 @@ namespace TeamFortressServerManager
             statusStripUpdate("leave");
         }
 
-        private void networkRefreshButton_Click(object sender, EventArgs e)
+        // Other Functions
+        void isFirstCheck()
         {
-            refreshNetwork();
-        }
-
-        private void formLoaded(object sender, EventArgs e)
-        {
-            refreshNetwork();
-        }
-
-        private void copyLabel(object sender, EventArgs e)
-        {
-            Button currButton = (Button)sender;
-            Regex regEx = new Regex("copy(.*)Button");
-            string name = regEx.Match(currButton.Name).Groups[1].ToString().ToLower();
-
-            Label currLabel = (Label)this.Controls.Find(name + "Label", true)[0];
-
-            if (currLabel.Text != "N/A" && currLabel.Text != "Refreshing...")
+            if (Context.IO.readOption("ServerDirectory") == "" || Context.IO.readOption("GameDirectory") == "" || Context.IO.readOption("SteamCMDDirectory") == "")
             {
-                Clipboard.SetText(currLabel.Text);
+                MainProgram.Variable.isFirst = true;
             }
         }
-
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            foreach (Thread currThread in refreshThreads)
-            {
-                if (currThread != null)
-                {
-                    currThread.Abort();
-
-                }
-            }
-        }
-
-        public delegate void MyFunction();
-
-        public void startThread(int i, MyFunction function)
-        {
-            if (refreshThreads[i] == null || !refreshThreads[i].IsAlive)
-            {
-                refreshThreads[i] = new Thread(new ThreadStart(function));
-                refreshThreads[i].IsBackground = true;
-                refreshThreads[i].Start();
-            }
-        }
+        #endregion
     }
 
-
-    //Global variables and functions
+    #region Classes
     public class Ip
     {
         int[] adress = new int[4];
@@ -404,9 +312,5 @@ namespace TeamFortressServerManager
             adress = inputArray;
         }
     }
-
-    public static class globalClass1
-    {
-        public static bool isFirst;
-    }
+    #endregion
 }

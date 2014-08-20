@@ -6,180 +6,75 @@ namespace TeamFortressServerManager
 {
     public partial class Form2 : Form
     {
+        #region Initialization
         public Form2()
         {
             InitializeComponent();
 
             readSettings();
         }
+        #endregion
 
-
-        // Main Functions
-
+        #region Events
+        // Main Events
         private void Form2_Load(object sender, EventArgs e)
         {
-            //General
-            serverDirectoryPathToolTip.SetToolTip(serverDirectoryTitleLabel, "The directory of the downloaded TF2 server");
-            serverDirectoryPathToolTip.SetToolTip(savableServerDirectory, "The directory of the downloaded TF2 server");
-            serverDirectorySelectToolTip.SetToolTip(openServerDIrectoryButton, "Select server directory");
-            gameDirectoryPathToolTip.SetToolTip(gameDirectoryTitleLabel, "The \"Team Fortress 2\" directory (usually in \"C:\\Program Files\\Steam\\SteamApps\\common\")");
-            gameDirectoryPathToolTip.SetToolTip(savableGameDirectory, "The \"Team Fortress 2\" directory (usually in \"C:\\Program Files\\Steam\\SteamApps\\common\")");
-            gameDirectorySelectToolTip.SetToolTip(openGameDirectoryButton, "Select game directory");
-            steamCMDPathToolTip.SetToolTip(SteamCMDTitleLabel, "SteamCMD path");
-            steamCMDPathToolTip.SetToolTip(savableSteamCMDDirectory, "SteamCMD path");
-            steamCMDSelectToolTip.SetToolTip(openSteamCMDDirectoryButton, "Select steamCMD directory");
-
-
-            //Update
-            anonymousLoginToolTip.SetToolTip(loginAnonymouslyRadioButton, "Log into the server anonymously");
-            gameNumberToolTip.SetToolTip(savableGameNumber, "Updatable game number (TF2: 232250)");
-            gameNumberToolTip.SetToolTip(gameNumberTitleLabel, "Updatable game number (TF2: 232250)");
+            setToolTips();
         }
 
-        private void readSettings()
+        private void form2Closed(object sender, FormClosedEventArgs e)
         {
-            for (int i = 0; i < this.Controls[2].Controls.Count; i++)
-            {
-                for (int j = 0; j < this.Controls[2].Controls[i].Controls.Count; j++)
-                {
-                    try
-                    {
-                        if (this.Controls[2].Controls[i].Controls[j].Name.Substring(0, 7) == "savable")
-                        {
-                            FileStream settings = new FileStream("server.settings", FileMode.OpenOrCreate);
-                            settings.Close();
-
-                            string currOption = this.Controls[2].Controls[i].Controls[j].Name.Replace("savable", "");
-                            var currControl = this.Controls[2].Controls[i].Controls[j];
-
-                            if (currControl.HasProperty("Checked"))
-                            {
-                                try
-                                {
-                                    ((CheckBox)currControl).Checked = Convert.ToBoolean(globalClass2.readOption(currOption));
-                                }
-
-                                catch
-                                {
-                                }
-                            }
-
-                            else if (!currControl.HasProperty("Checked") && currControl.HasProperty("Text"))
-                            {
-                                currControl.Text = globalClass2.readOption(currOption);
-                            }
-                        }
-                    }
-
-                    catch
-                    {
-                    }
-                }
-            }
-
-            if (savableGameNumber.Text == "")
-            {
-                savableGameNumber.Text = "232250";
-                updateApplyButton.Enabled = false;
-            }
-
-            isSettingsChanged();
+            MainProgram.Variable.isFirst = false;
         }
 
+        // Click Events
         private void settingsOpenServerDirectoryButton_Click(object sender, EventArgs e)
         {
-            serverDirectoryFolderBrowserDialog.SelectedPath = savableServerDirectory.Text;
-
-            if (serverDirectoryFolderBrowserDialog.ShowDialog() == DialogResult.OK)
-            {
-                string serverDirectoryPath = serverDirectoryFolderBrowserDialog.SelectedPath;
-                savableServerDirectory.Text = serverDirectoryPath;
-            }
+            savableServerDirectory.Text = createFolderBrowserDialog(serverDirectoryFolderBrowserDialog, savableServerDirectory.Text);
         }
 
         private void settingsOpenGameDirectoryButton_Click(object sender, EventArgs e)
         {
+            string startPath = "";
+
             if (savableGameDirectory.Text != "")
             {
-                gameDirectoryFolderBrowserDialog.SelectedPath = savableGameDirectory.Text;
+                startPath = savableGameDirectory.Text;
             }
 
             else
             {
-                gameDirectoryFolderBrowserDialog.SelectedPath = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + "\\Steam\\SteamApps\\common\\Team Fortress 2";
+                startPath = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + "\\Steam\\SteamApps\\common\\Team Fortress 2";
             }
 
-            if (gameDirectoryFolderBrowserDialog.ShowDialog() == DialogResult.OK)
-            {
-                string gameDirectoryPath = gameDirectoryFolderBrowserDialog.SelectedPath;
-                savableGameDirectory.Text = gameDirectoryPath;
-            }
+            savableGameDirectory.Text = createFolderBrowserDialog(gameDirectoryFolderBrowserDialog, startPath);
         }
 
         private void openSteamCMDDirectoryButton_Click(object sender, EventArgs e)
         {
-            SteamCMDFolderBrowserDialog.SelectedPath = savableSteamCMDDirectory.Text;
-
-            if (SteamCMDFolderBrowserDialog.ShowDialog() == DialogResult.OK)
-            {
-                string steamCMDPath = SteamCMDFolderBrowserDialog.SelectedPath;
-                savableSteamCMDDirectory.Text = steamCMDPath;
-            }
+            savableSteamCMDDirectory.Text = createFolderBrowserDialog(SteamCMDFolderBrowserDialog, savableSteamCMDDirectory.Text);
         }
 
         private void updateDefaultSettingsButton_Click(object sender, EventArgs e)
         {
-            if (MessageBox.Show("Do you want to restore the default settings? All of your settings will be lost (this will affect only the \"update\" tab).", "Restore default settings", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
-            {
-                for (int i = 0; i < globalClass2.defaultOptions.GetLength(1); i++)
-                {
-                    string currOptionName = globalClass2.defaultOptions[i, 0];
-                    string currOptionValue = globalClass2.defaultOptions[i, 1];
-
-                    for (int j = 0; j < settingsTabControl.SelectedTab.Controls.Count; j++)
-                    {
-                        var currControl = settingsTabControl.SelectedTab.Controls[j];
-
-                        try
-                        {
-                            if (currControl.Name.Substring(0, 7) == "savable" && currControl.Name.Replace("savable", "") == currOptionName)
-                            {
-                                if (currControl.HasProperty("Checked"))
-                                {
-                                    ((CheckBox)currControl).Checked = Convert.ToBoolean(currOptionValue);
-                                }
-
-                                else if (!currControl.HasProperty("Checked") && currControl.HasProperty("Text"))
-                                {
-                                    currControl.Text = currOptionValue;
-                                }
-                            }
-                        }
-
-                        catch
-                        {
-                        }
-                    }
-                }
-            }
+            restoreDefaults();
         }
 
         private void ok_Click(object sender, EventArgs e)
         {
-
             if (savableGameDirectory.Text != "" && savableServerDirectory.Text != "" && savableGameNumber.Text != "" && savableSteamCMDDirectory.Text != "")
             {
-                if (globalClass1.isFirst == true)
-                {
-                    globalClass1.isFirst = false;
-
-                    MessageBox.Show("You can modify these settings later in the \"Settings\" menu.", "Settings saved", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
-                }
-
                 saveSettings();
 
-                if (!globalClass2.checkSettings())
+                if (!Context.IO.checkSettings())
                 {
+                    if (MainProgram.Variable.isFirst == true)
+                    {
+                        MainProgram.Variable.isFirst = false;
+
+                        MessageBox.Show("You can modify these settings later in the \"Settings\" menu.", "Settings saved", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+                    }
+
                     Close();
                 }
             }
@@ -209,12 +104,12 @@ namespace TeamFortressServerManager
         {
             updateApplyButton.Enabled = false;
             saveSettings();
-            globalClass1.isFirst = false;
+            MainProgram.Variable.isFirst = false;
         }
 
         private void cancel_Click(object sender, EventArgs e)
         {
-            if (!globalClass1.isFirst  && !globalClass2.checkSettings())
+            if (!MainProgram.Variable.isFirst && !Context.IO.checkSettings())
             {
                 if (savableGameDirectory.Text != "" && savableServerDirectory.Text != "" && savableSteamCMDDirectory.Text != "")
                 {
@@ -245,7 +140,7 @@ namespace TeamFortressServerManager
                 }
             }
 
-            else if (globalClass1.isFirst)
+            else if (MainProgram.Variable.isFirst)
             {
                 if (MessageBox.Show("At least one required option is not set. The server manager can't continue without setting these options. Do you want to exit?", "Error", MessageBoxButtons.YesNo, MessageBoxIcon.Error) == DialogResult.Yes)
                 {
@@ -254,9 +149,153 @@ namespace TeamFortressServerManager
             }
         }
 
-        private void form2Closed(object sender, FormClosedEventArgs e)
+        // Drag and Drop Events
+        private void dragEnter(object sender, DragEventArgs e)
         {
-            globalClass1.isFirst = false;
+            if (e.Data.GetDataPresent(DataFormats.FileDrop, false))
+                e.Effect = DragDropEffects.All;
+            else
+                e.Effect = DragDropEffects.None;
+        }
+
+        private void dragDrop(object sender, DragEventArgs e)
+        {
+            var currTextBox = (TextBox)sender;
+
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+
+                if (Directory.Exists(files[0]))
+                {
+                    currTextBox.Text = files[0];
+                }
+
+                else
+                {
+                    MessageBox.Show("That does not seem to be a directory. Please drop a directory here!", "Error: Invalid directory", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        //Other Events
+        private void filterText(object sender, KeyPressEventArgs e)
+        {
+            if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void settingsChange(object sender, EventArgs e)
+        {
+            isSettingsChanged();
+        }
+        #endregion
+
+        #region Functions
+        // Main Functions
+        private void readSettings()
+        {
+            for (int i = 0; i < this.Controls[2].Controls.Count; i++)
+            {
+                for (int j = 0; j < this.Controls[2].Controls[i].Controls.Count; j++)
+                {
+                    try
+                    {
+                        if (this.Controls[2].Controls[i].Controls[j].Name.Substring(0, 7) == "savable")
+                        {
+                            FileStream settings = new FileStream("server.settings", FileMode.OpenOrCreate);
+                            settings.Close();
+
+                            string currOption = this.Controls[2].Controls[i].Controls[j].Name.Replace("savable", "");
+                            var currControl = this.Controls[2].Controls[i].Controls[j];
+
+                            if (currControl.HasProperty("Checked"))
+                            {
+                                try
+                                {
+                                    ((CheckBox)currControl).Checked = Convert.ToBoolean(Context.IO.readOption(currOption));
+                                }
+
+                                catch
+                                {
+                                }
+                            }
+
+                            else if (!currControl.HasProperty("Checked") && currControl.HasProperty("Text"))
+                            {
+                                currControl.Text = Context.IO.readOption(currOption);
+                            }
+                        }
+                    }
+
+                    catch
+                    {
+                    }
+                }
+            }
+
+            if (savableGameNumber.Text == "")
+            {
+                savableGameNumber.Text = "232250";
+                updateApplyButton.Enabled = false;
+            }
+
+            isSettingsChanged();
+        }
+
+        private void isSettingsChanged()
+        {
+            bool isChanged = false;
+
+            for (int i = 0; i < this.Controls[2].Controls.Count; i++)
+            {
+                for (int j = 0; j < this.Controls[2].Controls[i].Controls.Count; j++)
+                {
+                    try
+                    {
+                        if (this.Controls[2].Controls[i].Controls[j].Name.Substring(0, 7) == "savable")
+                        {
+                            var currControl = this.Controls[2].Controls[i].Controls[j];
+
+                            if (currControl.HasProperty("Checked"))
+                            {
+                                if (Context.IO.readOption(currControl.Name.Replace("savable", "")) != Convert.ToString(((CheckBox)currControl).Checked))
+                                {
+                                    isChanged = true;
+                                }
+                            }
+
+                            else if (!currControl.HasProperty("Checked") && currControl.HasProperty("Text"))
+                            {
+                                if (this.Controls[2].Controls[i].Controls[j].Text != "")
+                                {
+                                    if (Context.IO.readOption(currControl.Name.Replace("savable", "")) != currControl.Text)
+                                    {
+                                        isChanged = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    catch
+                    {
+                    }
+                }
+            }
+
+            if (isChanged)
+            {
+                updateApplyButton.Enabled = true;
+
+            }
+
+            else
+            {
+                updateApplyButton.Enabled = false;
+            }
         }
 
         private void saveSettings()
@@ -335,198 +374,89 @@ namespace TeamFortressServerManager
             }
         }
 
-
-        // Sub Functions
-
-        private void filterText(object sender, KeyPressEventArgs e)
+        void setToolTips()
         {
-            if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
+            //General
+            serverDirectoryPathToolTip.SetToolTip(serverDirectoryTitleLabel, "The directory of the downloaded TF2 server");
+            serverDirectoryPathToolTip.SetToolTip(savableServerDirectory, "The directory of the downloaded TF2 server");
+            serverDirectorySelectToolTip.SetToolTip(openServerDIrectoryButton, "Select server directory");
+            gameDirectoryPathToolTip.SetToolTip(gameDirectoryTitleLabel, "The \"Team Fortress 2\" directory (usually in \"C:\\Program Files\\Steam\\SteamApps\\common\")");
+            gameDirectoryPathToolTip.SetToolTip(savableGameDirectory, "The \"Team Fortress 2\" directory (usually in \"C:\\Program Files\\Steam\\SteamApps\\common\")");
+            gameDirectorySelectToolTip.SetToolTip(openGameDirectoryButton, "Select game directory");
+            steamCMDPathToolTip.SetToolTip(SteamCMDTitleLabel, "SteamCMD path");
+            steamCMDPathToolTip.SetToolTip(savableSteamCMDDirectory, "SteamCMD path");
+            steamCMDSelectToolTip.SetToolTip(openSteamCMDDirectoryButton, "Select steamCMD directory");
+
+
+            //Update
+            anonymousLoginToolTip.SetToolTip(loginAnonymouslyRadioButton, "Log into the server anonymously");
+            gameNumberToolTip.SetToolTip(savableGameNumber, "Updatable game number (TF2: 232250)");
+            gameNumberToolTip.SetToolTip(gameNumberTitleLabel, "Updatable game number (TF2: 232250)");
+        }
+
+        string createFolderBrowserDialog(FolderBrowserDialog dialog, string startPath)
+        {
+            dialog.SelectedPath = startPath;
+
+            if (dialog.ShowDialog() == DialogResult.OK)
             {
-                e.Handled = true;
+                return dialog.SelectedPath;
+            }
+
+            else
+            {
+                return "";
             }
         }
 
-        private void settingsChange(object sender, EventArgs e)
+        void restoreDefaults()
         {
-            isSettingsChanged();
-        }
-
-        private void isSettingsChanged()
-        {
-            bool isChanged = false;
-
-            for (int i = 0; i < this.Controls[2].Controls.Count; i++)
+            if (MessageBox.Show("Do you want to restore the default settings? All of your settings will be lost (this will affect only the \"update\" tab).", "Restore default settings", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             {
-                for (int j = 0; j < this.Controls[2].Controls[i].Controls.Count; j++)
+                for (int i = 0; i < Context.IO.defaultOptions.GetLength(1); i++)
                 {
-                    try
+                    string currOptionName = Context.IO.defaultOptions[i, 0];
+                    string currOptionValue = Context.IO.defaultOptions[i, 1];
+
+                    for (int j = 0; j < settingsTabControl.SelectedTab.Controls.Count; j++)
                     {
-                        if (this.Controls[2].Controls[i].Controls[j].Name.Substring(0, 7) == "savable")
+                        var currControl = settingsTabControl.SelectedTab.Controls[j];
+
+                        try
                         {
-                            var currControl = this.Controls[2].Controls[i].Controls[j];
-
-                            if (currControl.HasProperty("Checked"))
+                            if (currControl.Name.Substring(0, 7) == "savable" && currControl.Name.Replace("savable", "") == currOptionName)
                             {
-                                if (globalClass2.readOption(currControl.Name.Replace("savable", "")) != Convert.ToString(((CheckBox)currControl).Checked))
+                                if (currControl.HasProperty("Checked"))
                                 {
-                                    isChanged = true;
+                                    ((CheckBox)currControl).Checked = Convert.ToBoolean(currOptionValue);
                                 }
-                            }
 
-                            else if (!currControl.HasProperty("Checked") && currControl.HasProperty("Text"))
-                            {
-                                if (this.Controls[2].Controls[i].Controls[j].Text != "")
+                                else if (!currControl.HasProperty("Checked") && currControl.HasProperty("Text"))
                                 {
-                                    if (globalClass2.readOption(currControl.Name.Replace("savable", "")) != currControl.Text)
-                                    {
-                                        isChanged = true;
-                                    }
+                                    currControl.Text = currOptionValue;
                                 }
                             }
                         }
+
+                        catch
+                        {
+                        }
                     }
-
-                    catch
-                    {
-                    }
-                }
-            }
-
-            if (isChanged)
-            {
-                updateApplyButton.Enabled = true;
-
-            }
-
-            else
-            {
-                updateApplyButton.Enabled = false;
-            }
-        }
-
-        static string getProgramFilesPath()
-        {
-            if (8 == IntPtr.Size || (!String.IsNullOrEmpty(Environment.GetEnvironmentVariable("PROCESSOR_ARCHITEW6432"))))
-            {
-                return Environment.GetEnvironmentVariable("ProgramFiles(x86)");
-            }
-
-            return Environment.GetEnvironmentVariable("ProgramFiles");
-        }
-
-        private void dragEnter(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop, false))
-                e.Effect = DragDropEffects.All;
-            else
-                e.Effect = DragDropEffects.None;
-        }
-
-        private void dragDrop(object sender, DragEventArgs e)
-        {
-            var currTextBox = (TextBox)sender;
-
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
-                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-
-                if (Directory.Exists(files[0]))
-                {
-                    currTextBox.Text = files[0];
-                }
-
-                else
-                {
-                    MessageBox.Show("That does not seem to be a directory. Please drop a directory here!", "Error: Invalid directory", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
+
+        #endregion
     }
 
-
-    //Global variables and functions
-
-    public static class globalClass2
+    #region Classes
+    static class customMethods
     {
-        public static bool checkSettings()
-        {
-            bool isNotValid = false;
-
-            if (!File.Exists(readOption("GameDirectory") + "\\hl2.exe"))
-            {
-                MessageBox.Show("The game directory does not have \"hl2.exe\" in it. Please revise the path!", "Error: invalid game path", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                isNotValid = true;
-            }
-
-            else if (!File.Exists(readOption("ServerDirectory") + "\\srcds.exe"))
-            {
-                MessageBox.Show("The server directory does not have \"srcds.exe\" in it. Please revise the path!", "Error: invalid server path", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                isNotValid = true;
-            }
-
-            else if (!File.Exists(readOption("SteamCMDDirectory") + "\\steamcmd.exe"))
-            {
-                MessageBox.Show("The SteamCMD directory does not have \"steamcmd.exe\" in it. Please revise the path!", "Error: invalid SteamCMD path", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                isNotValid = true;
-            }
-
-            try
-            {
-                Convert.ToInt32(readOption("GameNumber"));
-            }
-
-            catch
-            {
-                MessageBox.Show("The game number is not in a correct format. It may only contains numbers.", "Error: invalid game number", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                isNotValid = true;
-            }
-
-            try
-            {
-                Convert.ToBoolean(readOption("RunAsAdmin"));
-            }
-
-            catch
-            {
-                MessageBox.Show("Some settings may not be saved. Please save them again!", "Settings error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                isNotValid = true;
-            }
-
-            return isNotValid;
-        }
-
-        public static string readOption(string inputOption)
-        {
-            FileStream settings = new FileStream("server.settings", FileMode.OpenOrCreate);
-            settings.Close();
-
-            StreamReader settingsFile = new StreamReader("server.settings");
-
-            string outputValue = "";
-
-            while (settingsFile.Peek() > -1)
-            {
-                string currLine = settingsFile.ReadLine();
-
-                char[] splitChar = { '=' };
-
-                if (currLine.Split(splitChar, 2)[0] == inputOption)
-                {
-                    outputValue = currLine.Split(splitChar, 2)[1];
-                }
-            }
-
-            settingsFile.Close();
-
-            return outputValue;
-        }
-
         public static bool HasProperty(this object objectToCheck, string methodName)
         {
             var type = objectToCheck.GetType();
             return type.GetProperty(methodName) != null;
         }
-
-        public static string[,] defaultOptions = new string[2, 2] { { "GameNumber", "232250" }, { "RunAsAdmin", "true" } };
     }
+    #endregion
 }
